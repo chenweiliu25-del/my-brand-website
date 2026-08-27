@@ -3,32 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的品牌網站</title>
+    <title>我的個人省錢小助手</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f9;
-        }
-        .container {
-            text-align: center;
-            padding: 40px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h1 { color: #333; }
-        p { color: #666; }
+        body { font-family: sans-serif; max-width: 500px; margin: 30px auto; padding: 20px; background: #f7f9fa; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .balance { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #27ae60; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input, select, button { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { background: #3498db; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #2980b9; }
+        ul { list-style: none; padding: 0; margin-top: 20px; }
+        li { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .income { color: #27ae60; font-weight: bold; }
+        .expense { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>網站建置成功！</h1>
-        <p>這是我的客製化品牌網站首頁。</p>
+
+<div class="card">
+    <h2>💰 個人省錢記帳本</h2>
+    <div class="balance" id="totalBalance">目前結餘: $0</div>
+
+    <div class="form-group">
+        <label>項目名稱</label>
+        <input type="text" id="desc" placeholder="例如：午餐、薪水、買飲料">
     </div>
+    <div class="form-group">
+        <label>金額</label>
+        <input type="number" id="amount" placeholder="金額">
+    </div>
+    <div class="form-group">
+        <label>類別</label>
+        <select id="type">
+            <option value="expense">支出 (-)</option>
+            <option value="income">收入 (+)</option>
+        </select>
+    </div>
+    <button onclick="addRecord()">新增紀錄</button>
+
+    <h3>收支明細</h3>
+    <ul id="list"></ul>
+</div>
+
+<script>
+    let records = JSON.parse(localStorage.getItem('records')) || [];
+
+    function updateUI() {
+        const list = document.getElementById('list');
+        const totalBalance = document.getElementById('totalBalance');
+        list.innerHTML = '';
+        let total = 0;
+
+        records.forEach((r) => {
+            const li = document.createElement('li');
+            const isIncome = r.type === 'income';
+            const amountVal = isIncome ? r.amount : -r.amount;
+            total += amountVal;
+
+            li.innerHTML = `<span>${r.desc}</span> <span class="${r.type}">${isIncome ? '+' : '-'}$${r.amount}</span>`;
+            list.appendChild(li);
+        });
+
+        totalBalance.innerText = `目前結餘: $${total}`;
+        localStorage.setItem('records', JSON.stringify(records));
+    }
+
+    function addRecord() {
+        const desc = document.getElementById('desc').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const type = document.getElementById('type').value;
+
+        if (!desc || isNaN(amount)) {
+            alert('請填寫完整項目名稱與金額！');
+            return;
+        }
+
+        records.push({ desc, amount, type });
+        document.getElementById('desc').value = '';
+        document.getElementById('amount').value = '';
+        updateUI();
+    }
+
+    updateUI();
+</script>
+
 </body>
 </html>
