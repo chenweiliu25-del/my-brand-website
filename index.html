@@ -3,90 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的個人省錢小助手</title>
+    <title>0050 股票趨勢與金字塔買賣計算器</title>
+    <!-- 引入 Chart.js 畫圖工具 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 30px auto; padding: 20px; background: #f7f9fa; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-        .balance { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #27ae60; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
-        input, select, button { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { background: #3498db; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:hover { background: #2980b9; }
-        ul { list-style: none; padding: 0; margin-top: 20px; }
-        li { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
-        .income { color: #27ae60; font-weight: bold; }
-        .expense { color: #e74c3c; font-weight: bold; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1, h2 { margin-top: 0; color: #1a365d; }
+        .highlight { color: #d9381e; font-weight: bold; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        input, select, button { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+        input { flex: 1; }
+        button { background: #0066cc; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0052a3; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; }
+        .buy { color: #d9381e; font-weight: bold; }
+        .sell { color: #008a00; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>💰 個人省錢記帳本</h2>
-    <div class="balance" id="totalBalance">目前結餘: $0</div>
+<div class="container">
+    <div class="card">
+        <h1>📊 0050 / 台股金字塔策略分析</h1>
+        <div class="search-box">
+            <input type="text" id="stockSymbol" value="0050" placeholder="輸入股票代號 (例: 0050, 2330)">
+            <button onclick="updateStock()">載入/更新股票數據</button>
+        </div>
+        <p>目前檢視：<span id="currentStockDisplay" class="highlight" style="font-size: 20px;">0050 元大台灣50</span></p>
+    </div>
 
-    <div class="form-group">
-        <label>項目名稱</label>
-        <input type="text" id="desc" placeholder="例如：午餐、薪水、買飲料">
+    <!-- 股票趨勢圖表 -->
+    <div class="card">
+        <h2>📈 股票近 6 個月趨勢圖</h2>
+        <canvas id="trendChart" height="120"></canvas>
     </div>
-    <div class="form-group">
-        <label>金額</label>
-        <input type="number" id="amount" placeholder="金額">
-    </div>
-    <div class="form-group">
-        <label>類別</label>
-        <select id="type">
-            <option value="expense">支出 (-)</option>
-            <option value="income">收入 (+)</option>
-        </select>
-    </div>
-    <button onclick="addRecord()">新增紀錄</button>
 
-    <h3>收支明細</h3>
-    <ul id="list"></ul>
+    <!-- 金字塔買賣策略計算器 -->
+    <div class="card">
+        <h2>📐 金字塔買賣策略計算器</h2>
+        <div class="grid">
+            <div>
+                <label>目前股價 (元)：</label>
+                <input type="number" id="currentPrice" value="195" oninput="calculatePyramid()">
+            </div>
+            <div>
+                <label>預計總投資金額 (元)：</label>
+                <input type="number" id="totalCapital" value="500000" step="10000" oninput="calculatePyramid()">
+            </div>
+            <div>
+                <label>預估波段高點 (賣出基準)：</label>
+                <input type="number" id="highPrice" value="210" oninput="calculatePyramid()">
+            </div>
+            <div>
+                <label>預估波段低點 (買入基準)：</label>
+                <input type="number" id="lowPrice" value="175" oninput="calculatePyramid()">
+            </div>
+        </div>
+
+        <h3 style="margin-top:25px;">🔻 正金字塔分批買進建議 (逢低加碼)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>階梯</th>
+                    <th>目標觸發價</th>
+                    <th>資金分配比例</th>
+                    <th>投入金額</th>
+                    <th>建議買入張數 (估)</th>
+                </tr>
+            </thead>
+            <tbody id="buyTable"></tbody>
+        </table>
+
+        <h3 style="margin-top:25px;">🔺 倒金字塔分批賣出建議 (逢高獲利)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>階梯</th>
+                    <th>目標獲利價</th>
+                    <th>出場持股比例</th>
+                    <th>賣出動作</th>
+                </tr>
+            </thead>
+            <tbody id="sellTable"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-    let records = JSON.parse(localStorage.getItem('records')) || [];
+    let chart;
 
-    function updateUI() {
-        const list = document.getElementById('list');
-        const totalBalance = document.getElementById('totalBalance');
-        list.innerHTML = '';
-        let total = 0;
+    // 初始化圖表
+    function initChart(labels, data) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '收盤價 (TWD)',
+                    data: data,
+                    borderColor: '#0066cc',
+                    backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true }
+        });
+    }
 
-        records.forEach((r) => {
-            const li = document.createElement('li');
-            const isIncome = r.type === 'income';
-            const amountVal = isIncome ? r.amount : -r.amount;
-            total += amountVal;
+    // 模擬載入股票資料 (預設 0050)
+    function updateStock() {
+        const symbol = document.getElementById('stockSymbol').value.trim() || '0050';
+        document.getElementById('currentStockDisplay').innerText = `${symbol} (數據即時分析中)`;
+        
+        // 模擬近 6 個月走勢數據
+        const months = ['3月', '4月', '5月', '6月', '7月', '8月'];
+        let mockData = [165, 172, 180, 178, 190, 195];
+        
+        if (symbol === '2330') mockData = [750, 800, 870, 920, 960, 980];
+        
+        initChart(months, mockData);
+        calculatePyramid();
+    }
 
-            li.innerHTML = `<span>${r.desc}</span> <span class="${r.type}">${isIncome ? '+' : '-'}$${r.amount}</span>`;
-            list.appendChild(li);
+    // 金字塔策略演算 logic
+    function calculatePyramid() {
+        const price = parseFloat(document.getElementById('currentPrice').value) || 195;
+        const capital = parseFloat(document.getElementById('totalCapital').value) || 500000;
+        const high = parseFloat(document.getElementById('highPrice').value) || 210;
+        const low = parseFloat(document.getElementById('lowPrice').value) || 175;
+
+        // 正金字塔分批買進 (10%, 20%, 30%, 40%)
+        const buyRatios = [0.10, 0.20, 0.30, 0.40];
+        const buyStep = (price - low) / 3;
+        const buyTable = document.getElementById('buyTable');
+        buyTable.innerHTML = '';
+
+        buyRatios.forEach((ratio, index) => {
+            const targetPrice = (price - (buyStep * index)).toFixed(1);
+            const allocateMoney = Math.round(capital * ratio);
+            const shares = Math.floor(allocateMoney / (targetPrice * 1000));
+            buyTable.innerHTML += `
+                <tr>
+                    <td>第 ${index + 1} 批</td>
+                    <td class="buy">$${targetPrice}</td>
+                    <td>${ratio * 100}%</td>
+                    <td>$${allocateMoney.toLocaleString()}</td>
+                    <td>${shares} 張</td>
+                </tr>
+            `;
         });
 
-        totalBalance.innerText = `目前結餘: $${total}`;
-        localStorage.setItem('records', JSON.stringify(records));
+        // 倒金字塔分批賣出 (40%, 30%, 20%, 10%)
+        const sellRatios = [0.40, 0.30, 0.20, 0.10];
+        const sellStep = (high - price) / 3;
+        const sellTable = document.getElementById('sellTable');
+        sellTable.innerHTML = '';
+
+        sellRatios.forEach((ratio, index) => {
+            const targetPrice = (price + (sellStep * index)).toFixed(1);
+            sellTable.innerHTML += `
+                <tr>
+                    <td>第 ${index + 1} 階段</td>
+                    <td class="sell">$${targetPrice}</td>
+                    <td>${ratio * 100}%</td>
+                    <td>賣出庫存的 ${ratio * 100}%</td>
+                </tr>
+            `;
+        });
     }
 
-    function addRecord() {
-        const desc = document.getElementById('desc').value;
-        const amount = parseFloat(document.getElementById('amount').value);
-        const type = document.getElementById('type').value;
-
-        if (!desc || isNaN(amount)) {
-            alert('請填寫完整項目名稱與金額！');
-            return;
-        }
-
-        records.push({ desc, amount, type });
-        document.getElementById('desc').value = '';
-        document.getElementById('amount').value = '';
-        updateUI();
-    }
-
-    updateUI();
+    // 頁面載入預設執行
+    window.onload = function() {
+        updateStock();
+    };
 </script>
 
 </body>
